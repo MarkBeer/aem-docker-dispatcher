@@ -1,0 +1,172 @@
+/publishfarm
+	{
+
+         # auth_checker for permission sensitive caching
+         $include "auth_checker.any"
+  
+	# client headers which should be passed through to the render instances
+	# (feature supported since dispatcher build 2.6.3.5222)
+	/clientheaders
+	  {
+	  	$include "clientheaders.any"
+	  }
+	# hostname globbing for farm selection (virtual domain addressing)
+	/virtualhosts
+	  {
+		$include "publish-vhosts.any"
+	  }
+	# the load will be balanced among these render instances
+	/renders
+	  {
+	  $include "publish-renders.any"
+	  }
+	
+	/vanity_urls {
+	     /url "/content/vanityUrls.html"
+	     /file "/tmp/publish_vanity_urls"
+	     /delay 300
+	}
+        # only handle the requests in the following acl. default is 'none'
+	# the glob pattern is matched against the first request line
+	/filter
+	  {
+	  # deny everything and allow specific entries
+	  /0001 { /type "deny"  /glob "*" }
+	
+	  # open consoles
+	#    /0012 { /type "allow" /glob "* /crx/*"    }  # allow content repository
+	#    /0013 { /type "allow" /glob "* /system/*" }  # allow OSGi console
+	
+	  # allow non-public content directories
+	#    /0021 { /type "allow" /glob "* /apps/*"   }  # allow apps access
+	    /0022 { /type "allow" /glob "* /bin/*"    }
+	  /0023 { /type "allow" /glob "* /content*" }  # disable this rule to allow mapped content only
+  
+	#    /0024 { /type "allow" /glob "* /libs/*"   }
+	#    /0025 { /type "deny"  /glob "* /libs/shindig/proxy*" } # if you enable /libs close access to proxy
+
+	#    /0026 { /type "allow" /glob "* /home/*"   }
+	#    /0027 { /type "allow" /glob "* /tmp/*"    }
+	#    /0028 { /type "allow" /glob "* /var/*"    }
+
+	  # enable specific mime types in non-public content directories 
+	  /0041 { /type "allow" /glob "* *.css *"   }  # enable css
+	  /0042 { /type "allow" /glob "* *.gif *"   }  # enable gifs
+	  /0043 { /type "allow" /glob "* *.ico *"   }  # enable icos
+	  /0044 { /type "allow" /glob "* *.js *"    }  # enable javascript
+	  /0045 { /type "allow" /glob "* *.png *"   }  # enable png
+	  /0046 { /type "allow" /glob "* *.swf *"   }  # enable flash
+	  /0047 { /type "allow" /glob "* *.svg *"   }  # enable SVG
+	  /0048 { /type "allow" /glob "* *.woff *"  }  # enable woff
+	  /0049 { /type "allow" /glob "* *.ttf *"   }  # enable ttf
+	  /0050 { /type "allow" /glob "* *.eot *"   }  # enable eot
+	  /0051 { /type "allow" /glob "* *.jpg *"   }  # enable jpg
+	  /0052 { /type "allow" /glob "* *.woff2 *"  }  # enable woff2
+
+	  # enable features 
+	  /0061 { /type "allow" /glob "POST /content/[.]*.form.html" }  # allow POSTs to form selectors under content
+	  /0062 { /type "allow" /glob "* /libs/cq/personalization/*" }  # enable personalization
+	  /0063 { /type "allow" /glob "POST /content/[.]*.commerce.cart.json" }  # allow POSTs to update the shopping cart
+
+	  # deny content grabbing
+	  /0081 { /type "deny"  /glob "GET *.infinity.json*" }
+	  /0082 { /type "deny"  /glob "GET *.tidy.json*"     }
+	  /0083 { /type "deny"  /glob "GET *.sysview.xml*"   }
+	  /0084 { /type "deny"  /glob "GET *.docview.json*"  }
+	  /0085 { /type "deny"  /glob "GET *.docview.xml*"   }
+	  /0086 { /type "deny"  /glob "GET *.*[0-9].json*"   }
+	  /0087 { /type "deny"  /glob "GET *.feed.xml*"      }
+	#    /0088 { /type "allow" /glob "GET *.1.json*"        }  # allow one-level json requests
+
+	  # deny query
+	  /0090 { /type "deny"  /glob "* *.query.json*" }
+
+	#Elham's changes
+	  /0091 { /type "deny"  /glob "GET /content.pages.json*"      }
+	  /0092 { /type "deny"  /glob "GET /content.languages.json*"      }
+	  /0093 { /type "deny"  /glob "GET /content.blueprint.json*"      }
+	  /0094 { /type "deny"  /glob "GET /content.feed.html*"      }
+
+	#STA-2357 changes
+	/0110 {/type "allow" /glob "GET /etc/segmentation.segment.js*" }
+	/0111 {/type "allow" /glob "GET /etc/clientcontext/default/*" }
+	/0112 {/type "allow" /glob "GET /libs/granite/csrf/token.json*" }	
+	/0113 { /type "allow" /glob "GET *.typeahead.json*" }
+	#zp STA-3367
+	/0115 { /type "deny" /url "/bin/querybuilder.json*" }
+
+	}       
+
+ 	# allow propagation of replication posts (should seldomly be used)
+	/propagateSyndPost "0"
+
+	# the cache is used to store requests from the renders for faster delivery
+	# for a second time.
+	/cache
+	  {
+	  # the cacheroot must be equal to the document root of the webserver
+	  /docroot "/mnt/var/www/html"
+
+	  # sets the level upto which files named ".stat" will be created in the 
+	  # document root of the webserver. when an activation request for some 
+	  # handle is received, only files within the same subtree are affected 
+	  # by the invalidation.
+	  /statfileslevel "0"
+  
+	  # caches also authorized data
+	  /allowAuthorized "1"
+
+	  # the rules define, which pages should be cached. please note that
+	  # - only GET requests are cached
+	  # - only requests with an extension are cached
+	  # - only requests without query parameters ( ? ) are cached
+	  # - only unauthorized pages are cached unless allowUnauthorized is set to 1
+	  /rules
+		{
+			$include "rules.any"
+		}
+	  # the invalidate section defines those pages which are 'invalidated' after
+	  # any activation. please note that, the activated page itself and all 
+	  # related documents are flushed on an modification. for example: if the 
+	  # page /foo/bar is activated, all /foo/bar.* files are removed from the
+	  # cache.
+	  /invalidate
+		{
+		/0000
+		  {
+		  /glob "*"
+		  /type "deny"
+		  }
+		/0001
+		  {
+		  /glob "*.html"
+		  /type "allow"
+		  }
+		}
+	  /allowedClients
+		{
+		/0000
+		  {
+		  /glob "*.*.*.*"
+		  /type "deny"
+		  }
+		$include "publish-invalidate-allowed.any"
+		}
+	  }
+	# the statistics define, how the load should be balanced among the renders
+	# according to the media-type. 
+	/statistics
+	  {
+	  /categories
+		{
+		/html
+		  {
+		  /glob "*.html"
+		  }
+		/others
+		  {
+		  /glob "*"
+		  }
+		}
+	  }
+	}

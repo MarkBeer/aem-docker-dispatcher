@@ -1,0 +1,126 @@
+/authorfarm
+	{  
+	# client headers which should be passed through to the render instances
+	# (feature supported since dispatcher build 2.6.3.5222)
+	/clientheaders
+	  {
+	  	$include "clientheaders.any"
+	  }
+	# hostname globbing for farm selection (virtual domain addressing)
+	/virtualhosts
+	  {
+		$include "author-vhosts.any"
+	  }
+	# the load will be balanced among these render instances
+	/renders
+	  {
+	  $include "author-renders.any"
+	  }
+	# only handle the requests in the following acl. default is 'none'
+	# the glob pattern is matched against the first request line
+	/filter
+	{
+
+	# allow everything
+	/0001 { /type "allow"  /glob "*" }
+
+	# block admin tools
+	/0010 { /type "deny" /glob "* /admin/*" }
+	/0011 { /type "deny" /glob "* /admin *" }
+	/0012 { /type "deny" /glob "* /system/*" }
+	/0013 { /type "deny" /glob "* /_jcr_system/*" }
+	/0014 { /type "deny" /glob "* /jcr:system/*" }
+
+	# block crx tools
+	# /0015 { /type "deny" /glob "* /crx/*" }
+	# /0016 { /type "deny" /glob "* /crx *" }
+	# /0017 { /type "deny" /glob "* /bin/crxde*" }
+
+	# allow some requests
+	/0052 { /type "allow" /glob "GET /system/sling/logout.html*" } # allow logout
+
+	}
+
+	# allow propagation of replication posts (should seldomly be used)
+	/propagateSyndPost "0"
+
+	# the cache is used to store requests from the renders for faster delivery
+	# for a second time.
+	/_cache
+	  {
+	  # the cacheroot must be equal to the document root of the webserver
+	  /docroot "/mnt/var/www/html"
+
+	  # sets the level upto which files named ".stat" will be created in the 
+	  # document root of the webserver. when an activation request for some 
+	  # handle is received, only files within the same subtree are affected 
+	  # by the invalidation.
+	  /statfileslevel "0"
+
+	  # caches also authorized data
+	  /allowAuthorized "1"
+
+	  # the rules define, which pages should be cached. please note that
+	  # - only GET requests are cached
+	  # - only requests with an extension are cached
+	  # - only requests without query parameters ( ? ) are cached
+	  # - only unauthorized pages are cached unless allowUnauthorized is set to 1
+	  /rules
+		{
+		/0000
+		  {
+		  # the globbing pattern to be compared against the url
+		  # example: *             -> everything
+		  #        : /foo/bar.*    -> only the /foo/bar documents
+		  #        : /foo/bar/*    -> all pages below /foo/bar
+		  #        : /foo/bar[./]* -> all pages below and /foo/bar itself
+		  #        : *.html        -> all .html files
+		  /glob "*"
+		  /type "allow"
+		  }
+		}
+	  # the invalidate section defines those pages which are 'invalidated' after
+	  # any activation. please note that, the activated page itself and all 
+	  # related documents are flushed on an modification. for example: if the 
+	  # page /foo/bar is activated, all /foo/bar.* files are removed from the
+	  # cache.
+	  /invalidate
+		{
+		/0000
+		  {
+		  /glob "*"
+		  /type "deny"
+		  }
+		/0001
+		  {
+		  /glob "*.html"
+		  /type "allow"
+		  }
+		}
+	  /allowedClients
+		{
+		/0000
+		  {
+		  /glob "*.*.*.*"
+		  /type "deny"
+		  }
+	$include "author-invalidate-allowed.any"
+		}
+	  }
+	# the statistics define, how the load should be balanced among the renders
+	# according to the media-type. 
+	/statistics
+	  {
+	  /categories
+		{
+		/html
+		  {
+		  /glob "*.html"
+		  }
+		/others
+		  {
+		  /glob "*"
+		  }
+		}
+	  }
+	}

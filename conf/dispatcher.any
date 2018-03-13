@@ -1,0 +1,11 @@
+# name of the dispatcher
+/name "internet-server"
+
+# each farm configures a set of (load-balanced) renders
+/farms
+  {
+	$include "author-farm.any"
+
+
+	$include "publish-farm.any"
+  }

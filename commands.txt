@@ -1,0 +1,21 @@
+docker run --rm -it e015054cc533 bash -il
+
+
+docker run -dit --name my-apache-app -p 8080:80 -v "$PWD":/usr/local/apache2/htdocs/ httpd:2.4
+
+docker exec -i -t my-apache-app /bin/bash
+
+
+docker run -dit --name aem-dispatcher -p 8080:80 
+
+docker build -t aem-dispatcher .
+docker run -dit --name aem-dispatcher -p 8090:80 aem-dispatcher:latest
+docker run -dit --name aem-dispatcher -p 8090:80 -v D:\docker\aem-dispatcher\conf:/usr/local/apache2/conf/ aem-dispatcher:latest
+
+
+
+docker exec -i -t aem-dispatcher /bin/bash
+
+
+docker run --rm -it aem-dispatcher bash -il
+
